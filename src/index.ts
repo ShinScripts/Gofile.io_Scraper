@@ -18,21 +18,15 @@ const scrape = async function () {
 	const url = `${base}${rnd}`;
 
 	const browser = await puppeteer.launch({
-		headless: true,
-		defaultViewport: {
-			height: 720,
-			width: 1280,
-		},
+		headless: false,
+		defaultViewport: null,
 	});
 	const page = await browser.newPage();
 
-	await page.goto(url, { waitUntil: 'networkidle0' }).then(() => console.log('page loaded'));
+	await page.goto(url, { waitUntil: 'networkidle2' });
 
 	try {
-		const element = await page.waitForSelector('#rowFolder-tableContent').then((res) => {
-			console.log('selector found');
-			return res;
-		});
+		const element = await page.waitForSelector('#rowFolder-tableContent');
 
 		const data = await element.evaluate((el) => {
 			const arr = [];
@@ -50,13 +44,20 @@ const scrape = async function () {
 
 		writeFileSync(`./output/${rnd}.txt`, data.join('\n'));
 
-		await browser.close();
 		await client.send({ files: [`./output/${rnd}.txt`] });
+		return true;
 	} catch (e) {
 		console.log(`INVALID: ${rnd}`);
-
-		await scrape();
+		return false;
+	} finally {
+		await browser.close();
 	}
 };
 
-scrape();
+(async () => {
+	let result = false;
+
+	do {
+		result = await scrape();
+	} while (result !== true);
+})();
