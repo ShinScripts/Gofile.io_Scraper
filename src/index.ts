@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer';
 import 'dotenv/config';
 import { writeFileSync } from 'fs';
-import { MessageEmbed, WebhookClient, Util } from 'discord.js';
+import { WebhookClient } from 'discord.js';
 
 const base = 'https://gofile.io/d/';
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -18,7 +18,7 @@ const scrape = async function () {
 	const url = `${base}${rnd}`;
 
 	const browser = await puppeteer.launch({
-		headless: false,
+		headless: true,
 		defaultViewport: null,
 	});
 	const page = await browser.newPage();
@@ -42,9 +42,9 @@ const scrape = async function () {
 			return arr;
 		});
 
-		writeFileSync(`./output/${rnd}.txt`, data.join('\n'));
+		writeFileSync(`./output/${url}.txt`, data.join('\n'));
 
-		await client.send({ files: [`./output/${rnd}.txt`] });
+		await client.send({ files: [`./output/${url}.txt`] });
 		return true;
 	} catch (e) {
 		console.log(`INVALID: ${rnd}`);
