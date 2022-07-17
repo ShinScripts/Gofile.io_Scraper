@@ -1,5 +1,6 @@
 import puppeteer from 'puppeteer';
 import 'dotenv/config';
+import { writeFileSync } from 'fs';
 import { MessageEmbed, WebhookClient, Util } from 'discord.js';
 
 const base = 'https://gofile.io/d/';
@@ -25,23 +26,37 @@ const scrape = async function () {
 	});
 	const page = await browser.newPage();
 
-	await page.goto('https://gofile.io/d/ypwF1Z', { waitUntil: 'networkidle0' }).then(() => console.log('page loaded'));
+	await page.goto(url, { waitUntil: 'networkidle0' }).then(() => console.log('page loaded'));
 
-	const element = await page.waitForSelector('#rowFolder-tableContent');
+	try {
+		const element = await page.waitForSelector('#rowFolder-tableContent').then((res) => {
+			console.log('selector found');
+			return res;
+		});
 
-	const data = await element.evaluate((el) => {
-		const arr = [];
+		const data = await element.evaluate((el) => {
+			const arr = [];
 
-		for (const child of Array.from(el.childNodes) as Element[]) {
-			if (child.id != null) {
-				arr.push((Array.from(Array.from(child.childNodes)[3].childNodes)[1] as Element).getAttribute('href'));
+			for (const child of Array.from(el.childNodes) as Element[]) {
+				if (child.id != null) {
+					arr.push(
+						(Array.from(Array.from(child.childNodes)[3].childNodes)[1] as Element).getAttribute('href')
+					);
+				}
 			}
-		}
 
-		return arr;
-	});
+			return arr;
+		});
 
-	console.log(data.join('\n'));
+		writeFileSync(`./output/${rnd}.txt`, data.join('\n'));
+
+		await browser.close();
+		await client.send({ files: [`./output/${rnd}.txt`] });
+	} catch (e) {
+		console.log(`INVALID: ${rnd}`);
+
+		await scrape();
+	}
 };
 
 scrape();
