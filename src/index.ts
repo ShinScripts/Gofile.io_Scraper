@@ -1,13 +1,15 @@
 import puppeteer from 'puppeteer';
-import 'dotenv/config';
 import { writeFileSync } from 'fs';
 import { WebhookClient } from 'discord.js';
+import 'dotenv/config';
 
 const base = 'https://gofile.io/d/';
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const client = new WebhookClient({
 	url: process.env.TOKEN,
 });
+
+let iter = 0;
 
 const scrape = async function () {
 	let rnd = '';
@@ -21,7 +23,7 @@ const scrape = async function () {
 
 	// Start up the browser
 	const browser = await puppeteer.launch({
-		headless: true,
+		headless: false,
 		defaultViewport: null,
 	});
 
@@ -31,10 +33,17 @@ const scrape = async function () {
 	// Send the page to the URL define above and wait until the page has no more than 2 requests sent/received during that second
 	await page.goto(url, { waitUntil: 'networkidle2' });
 
+	// For catching a site error
+	if (await page.$('body > div.swal2-container.swal2-center.swal2-backdrop-show > div')) {
+		await browser.close();
+		console.log(`${++iter} INVALID: ${rnd}`);
+		return false;
+	}
+
 	// If anything withing the "try" block fails, it'll stop the code execution inside and immediately jump to the "catch" block below
 	try {
 		// Wait until an element within the page with the ID of "rowFolder-tableContent" loads
-		const element = await page.waitForSelector('#rowFolder-tableContent');
+		const element = await page.$('#rowFolder-tableContent');
 
 		const data = await element.evaluate((el) => {
 			const arr = [];
@@ -61,7 +70,7 @@ const scrape = async function () {
 		return true;
 	} catch (e) {
 		// If the code within the "try" block would fail, we'd be here now
-		console.log(`INVALID: ${rnd}`);
+		console.log(`${++iter} INVALID: ${rnd}`);
 		return false;
 	} finally {
 		// At last, close the browser so chromium instances won't build up and cause a memory leak / stack overflow
