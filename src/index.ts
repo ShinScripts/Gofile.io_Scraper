@@ -23,7 +23,7 @@ const scrape = async function () {
 
 	// Start up the browser
 	const browser = await puppeteer.launch({
-		headless: false,
+		headless: true,
 		defaultViewport: null,
 	});
 
