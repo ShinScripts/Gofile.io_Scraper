@@ -5,9 +5,9 @@ import 'dotenv/config';
 
 const base = 'https://gofile.io/d/';
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-// const client = new WebhookClient({
-// 	url: process.env.TOKEN,
-// });
+const client = new WebhookClient({
+	url: process.env.TOKEN,
+});
 
 const visitedPath = `${process.cwd()}/src/visited.json`;
 let iter = 0;
@@ -84,7 +84,7 @@ const scrape = async function () {
 		writeFileSync(`./output/${url}.txt`, data.join('\n'));
 
 		// Send over that file in the specified discord channel (through a webhook)
-		// await client.send({ files: [`./output/${url}.txt`] });
+		await client.send({ files: [`./output/${url}.txt`] });
 		return true;
 	} catch (e) {
 		// If the code within the "try" block would fail, we'd be here now
