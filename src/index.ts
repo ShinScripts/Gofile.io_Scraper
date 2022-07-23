@@ -1,15 +1,27 @@
 import puppeteer from 'puppeteer';
-import { writeFileSync } from 'fs';
+import { writeFileSync, existsSync, readFileSync } from 'fs';
 import { WebhookClient } from 'discord.js';
 import 'dotenv/config';
 
 const base = 'https://gofile.io/d/';
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-const client = new WebhookClient({
-	url: process.env.TOKEN,
-});
+// const client = new WebhookClient({
+// 	url: process.env.TOKEN,
+// });
 
+const visitedPath = `${process.cwd()}/src/visited.json`;
 let iter = 0;
+let obj = {
+	visited: [],
+};
+
+if (existsSync(visitedPath)) {
+	obj.visited = [...JSON.parse(readFileSync(visitedPath).toString())['visited']];
+}
+
+const writeToFile = function () {
+	writeFileSync(visitedPath, JSON.stringify(obj, null, 4));
+};
 
 const scrape = async function () {
 	let rnd = '';
@@ -17,6 +29,8 @@ const scrape = async function () {
 	for (let i = 0; i < 6; i++) {
 		rnd += chars.charAt(Math.floor(Math.random() * chars.length));
 	}
+
+	if (obj.visited.includes(rnd)) return false;
 
 	// Combine the base url and the random 6 characters
 	const url = `${base}${rnd}`;
@@ -37,6 +51,8 @@ const scrape = async function () {
 	if (await page.$('body > div.swal2-container.swal2-center.swal2-backdrop-show > div')) {
 		await browser.close();
 		console.log(`${++iter} INVALID: ${rnd}`);
+		obj.visited.push(rnd);
+		writeToFile();
 		return false;
 	}
 
@@ -62,17 +78,21 @@ const scrape = async function () {
 			return arr;
 		});
 
+		obj.visited.push(rnd);
+
 		// Write down the URL's, one per line in a file named the "URL".txt
 		writeFileSync(`./output/${url}.txt`, data.join('\n'));
 
 		// Send over that file in the specified discord channel (through a webhook)
-		await client.send({ files: [`./output/${url}.txt`] });
+		// await client.send({ files: [`./output/${url}.txt`] });
 		return true;
 	} catch (e) {
 		// If the code within the "try" block would fail, we'd be here now
 		console.log(`${++iter} INVALID: ${rnd}`);
+		obj.visited.push(rnd);
 		return false;
 	} finally {
+		writeToFile();
 		// At last, close the browser so chromium instances won't build up and cause a memory leak / stack overflow
 		await browser.close();
 	}
